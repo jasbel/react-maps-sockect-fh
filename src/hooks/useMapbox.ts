@@ -1,18 +1,48 @@
 import mapboxgl from "mapbox-gl";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { v4 } from 'uuid';
+import { v4 } from "uuid";
+import { Subject } from "rxjs";
+
 
 export const useMapbox = (puntoInicial: { lng: number; lat: number; zoom: number }) => {
   const mapDiv = useRef<HTMLDivElement>(null as any);
 
   const setRef = useCallback((node: any) => {
     mapDiv.current = node;
-
     return mapDiv.current;
   }, []);
 
+  const markerRef = useRef({} as any);
+
   const mapRef = useRef<mapboxgl.Map>();
   const [coords, setCoords] = useState(puntoInicial);
+
+  const moveMarker = useRef(new Subject())
+  const newMarker = useRef(new Subject())
+
+  // newMarker
+
+  // funcion para agregar marcadores
+  const addMarker = useCallback((e: mapboxgl.MapMouseEvent & mapboxgl.EventData) => {
+    const { lng, lat } = e.lngLat;
+
+    const marker = new mapboxgl.Marker() as mapboxgl.Marker & { id: string };
+    marker.id = v4(); // TODO
+    marker.setLngLat([lng, lat]).addTo(mapRef.current!).setDraggable(true);
+    markerRef.current[marker.id] = marker;
+
+    newMarker.current.next({id: marker.id, lat, lng});
+
+    marker.on("drag", (ev: any) => {
+      const { target } = ev;
+      const { id } = target;
+      const { lng, lat } = target.getLngLat();
+
+      moveMarker.current.next({id, lat, lng});
+      // TODO: emitirt cambios de marcador
+
+    });
+  }, []);
 
   useEffect(() => {
     const _map = new mapboxgl.Map({
@@ -36,16 +66,8 @@ export const useMapbox = (puntoInicial: { lng: number; lat: number; zoom: number
 
   // Agregar marcadores al hacer click
   useEffect(() => {
-    mapRef?.current?.on("click", (e: any) => {
-      const { lng, lat } = e.lngLat;
-      
-      // const marker = new mapboxgl.Marker({
-      // v4
-      console.log({lng, lat});
-    })
-  
-  }, [])
-  
+    mapRef?.current?.on("click", addMarker);
+  }, []);
 
-  return { coords, setRef };
+  return { coords, setRef, addMarker, newMarker$: newMarker.current, moveMarker$: moveMarker.current };
 };
