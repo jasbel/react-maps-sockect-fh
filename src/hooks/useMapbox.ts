@@ -67,7 +67,7 @@ export const useMapbox = (puntoInicial: { lng: number; lat: number; zoom: number
   // Agregar marcadores al hacer click
   useEffect(() => {
     mapRef?.current?.on("click", addMarker);
-  }, []);
+  }, [addMarker]);
 
   return { coords, setRef, addMarker, newMarker$: newMarker.current, moveMarker$: moveMarker.current };
 };
