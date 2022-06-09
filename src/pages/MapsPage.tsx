@@ -1,28 +1,43 @@
 import mapboxgl from "mapbox-gl"; // or "const mapboxgl = require('mapbox-gl');"
-import { useEffect } from "react";
+import { useContext, useEffect } from "react";
 import { useMapbox } from "../hooks/useMapbox";
+import { IMap } from "../interfaces/mapInterfaces";
+import { SocketContext } from "../states/SocketContext";
 
 mapboxgl.accessToken = "pk.eyJ1IjoiamFzYmVsIiwiYSI6ImNsM2Y0dnF6azBmOHczcW80aXlvZmg1cDAifQ.wtXIerPnq3A0r8fF6EHpUw";
 
 const puntoInicial = { lng: 5, lat: 34, zoom: 6 };
 
-
 const MapsPage = () => {
-  const {coords, setRef, newMarker$, moveMarker$} = useMapbox(puntoInicial)
+  const { coords, setRef, newMarker$, moveMarker$, addMarker } = useMapbox(puntoInicial);
+  const { socket } = useContext(SocketContext);
 
   useEffect(() => {
-    newMarker$.subscribe(markerNew => {
-      console.log(markerNew)
-    })
-  }, [newMarker$])
+    socket.on("markers-actives", (markers: { [key in string]: IMap }) => {
+      for (const key of Object.keys(markers)) {
+        addMarker(markers[key]);
+      }
+    });
+  }, [socket]);
 
   useEffect(() => {
-    moveMarker$.subscribe(markerMove => {
-      console.log(markerMove)
-    })
-  }, [moveMarker$])
-  
-  
+    newMarker$.subscribe((markerNew) => {
+      socket.emit("marker-new", markerNew);
+    });
+  }, [newMarker$, socket]);
+
+  useEffect(() => {
+    moveMarker$.subscribe((markerMove) => {
+      socket.emit("marker-move", markerMove);
+    });
+  }, [moveMarker$]);
+
+  useEffect(() => {
+    socket.on("marker-new", (markerNew: any) => {
+      console.log(markerNew);
+    });
+  }, [moveMarker$]);
+
   return (
     <>
       <div className="info">

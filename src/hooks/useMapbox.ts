@@ -2,7 +2,7 @@ import mapboxgl from "mapbox-gl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { v4 } from "uuid";
 import { Subject } from "rxjs";
-
+import { IMap } from "../interfaces/mapInterfaces";
 
 export const useMapbox = (puntoInicial: { lng: number; lat: number; zoom: number }) => {
   const mapDiv = useRef<HTMLDivElement>(null as any);
@@ -17,30 +17,29 @@ export const useMapbox = (puntoInicial: { lng: number; lat: number; zoom: number
   const mapRef = useRef<mapboxgl.Map>();
   const [coords, setCoords] = useState(puntoInicial);
 
-  const moveMarker = useRef(new Subject())
-  const newMarker = useRef(new Subject())
+  const moveMarker = useRef(new Subject());
+  const newMarker = useRef(new Subject());
 
   // newMarker
 
   // funcion para agregar marcadores
-  const addMarker = useCallback((e: mapboxgl.MapMouseEvent & mapboxgl.EventData) => {
-    const { lng, lat } = e.lngLat;
+  const addMarker = useCallback((e: mapboxgl.MapMouseEvent | mapboxgl.EventData | IMap) => {
+    const { lng, lat } = (e as mapboxgl.MapMouseEvent | mapboxgl.EventData).lngLat || e;
 
     const marker = new mapboxgl.Marker() as mapboxgl.Marker & { id: string };
-    marker.id = v4(); // TODO
+    marker.id = (e as IMap).id ?? v4(); // TODO
     marker.setLngLat([lng, lat]).addTo(mapRef.current!).setDraggable(true);
     markerRef.current[marker.id] = marker;
 
-    newMarker.current.next({id: marker.id, lat, lng});
+    if (!marker.id) newMarker.current.next({ id: marker.id, lat, lng });
 
     marker.on("drag", (ev: any) => {
       const { target } = ev;
       const { id } = target;
       const { lng, lat } = target.getLngLat();
 
-      moveMarker.current.next({id, lat, lng});
+      moveMarker.current.next({ id, lat, lng });
       // TODO: emitirt cambios de marcador
-
     });
   }, []);
 
