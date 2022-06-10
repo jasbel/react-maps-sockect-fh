@@ -23,11 +23,12 @@ export const useMapbox = (puntoInicial: { lng: number; lat: number; zoom: number
   // newMarker
 
   // funcion para agregar marcadores
-  const addMarker = useCallback((e: mapboxgl.MapMouseEvent | mapboxgl.EventData | IMap) => {
+  const addMarker = useCallback((e: mapboxgl.MapMouseEvent | mapboxgl.EventData | IMap, id?: string) => {
     const { lng, lat } = (e as mapboxgl.MapMouseEvent | mapboxgl.EventData).lngLat || e;
 
     const marker = new mapboxgl.Marker() as mapboxgl.Marker & { id: string };
-    marker.id = (e as IMap).id ?? v4(); // TODO
+    // marker.id = (e as IMap).id ?? v4();
+    marker.id = id ?? v4();
     marker.setLngLat([lng, lat]).addTo(mapRef.current!).setDraggable(true);
     markerRef.current[marker.id] = marker;
 
@@ -42,6 +43,12 @@ export const useMapbox = (puntoInicial: { lng: number; lat: number; zoom: number
       // TODO: emitirt cambios de marcador
     });
   }, []);
+
+  const updatePosition = useCallback((marker: IMap) => {
+    const {id, lng, lat} = marker;
+    markerRef.current[id].setLngLat([lng, lat]);
+  }
+  , []);
 
   useEffect(() => {
     const _map = new mapboxgl.Map({
@@ -68,5 +75,5 @@ export const useMapbox = (puntoInicial: { lng: number; lat: number; zoom: number
     mapRef?.current?.on("click", addMarker);
   }, [addMarker]);
 
-  return { coords, setRef, addMarker, newMarker$: newMarker.current, moveMarker$: moveMarker.current };
+  return { coords, setRef, addMarker, newMarker$: newMarker.current, moveMarker$: moveMarker.current, updatePosition };
 };
